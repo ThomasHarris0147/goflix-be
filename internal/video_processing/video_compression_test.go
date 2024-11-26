@@ -55,5 +55,5 @@ func TestChunkVideo(t *testing.T) {
 		"../../test/data/horses_compressed/Horses_480p.mp4",
 		"../../test/data/horses_compressed/Horses_720p.mp4"}
 
-	chunkVideo(inFileName, 8)
+	ChunkVideo(inFileName, 8)
 }

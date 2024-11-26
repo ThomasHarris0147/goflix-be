@@ -13,7 +13,7 @@ import (
 	ffmpeg "github.com/u2takey/ffmpeg-go"
 )
 
-func chunkVideo(inputVideo []string, chunkSegments int) {
+func ChunkVideo(inputVideo []string, chunkSegments int) {
 	if chunkSegments <= 0 {
 		chunkSegments = 3
 	}
