@@ -24,6 +24,7 @@ services:
       - "9092:9092"
     volumes:
       - "kafka_data:/bitnami"
+    restart: always
     environment:
       - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
       - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
@@ -32,6 +33,30 @@ services:
       - KAFKA_LISTENER_NAME=PLAINTEXT
     depends_on:
       - zookeeper
+    
+  database:
+    image: 'postgres:latest'
+    ports:
+      - 15432:5432
+    env_file:
+      - .env
+    networks:
+      - postgres-network
+    volumes:
+      - ${PWD}/db-data/:/var/lib/postgresql/data/
+  
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - 15433:80
+    env_file:
+      - .env
+    depends_on:
+      - database
+    networks:
+      - postgres-network
+    volumes:
+      - ${PWD}/pgadmin-data/:/var/lib/pgadmin/
 
 volumes:
   zookeeper_data:
@@ -41,3 +66,5 @@ volumes:
 
 networks:
   goflix:
+  postgres-network:
+    driver: bridge
