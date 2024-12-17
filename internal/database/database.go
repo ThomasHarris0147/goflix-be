@@ -1,198 +1,112 @@
 package database
 
 import (
-	"context"
+	"database/sql"
 	"fmt"
-	"log"
-	"math"
-	"os"
-	"strconv"
 	"strings"
-	"time"
 
-	_ "github.com/joho/godotenv/autoload"
-	"github.com/redis/go-redis/v9"
+	_ "github.com/lib/pq"
 )
 
-type Service interface {
-	Health() map[string]string
-}
-
-type service struct {
-	db *redis.Client
-}
-
-var (
-	address  = os.Getenv("DB_ADDRESS")
-	port     = os.Getenv("DB_PORT")
-	password = os.Getenv("DB_PASSWORD")
-	database = os.Getenv("DB_DATABASE")
+const (
+	host        = "localhost"
+	pg_port     = 15432
+	user        = "root"
+	pg_password = "password"
+	dbname      = "videos"
 )
 
-func New() Service {
-	num, err := strconv.Atoi(database)
+func ConnectToDB() (*sql.DB, error) {
+	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, pg_port, user, pg_password, dbname)
+
+	db, err := sql.Open("postgres", psqlconn)
 	if err != nil {
-		log.Fatalf(fmt.Sprintf("database incorrect %v", err))
+		return nil, err
 	}
 
-	fullAddress := fmt.Sprintf("%s:%s", address, port)
+	err = db.Ping()
+	if err != nil {
+		return nil, err
+	}
 
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     fullAddress,
-		Password: password,
-		DB:       num,
-		// Note: It's important to add this for a secure connection. Most cloud services that offer Redis should already have this configured in their services.
-		// For manual setup, please refer to the Redis documentation: https://redis.io/docs/latest/operate/oss_and_stack/management/security/encryption/
-		// TLSConfig: &tls.Config{
-		// 	MinVersion:   tls.VersionTLS12,
-		// },
-	})
-
-	s := &service{db: rdb}
-
-	return s
+	fmt.Println("Connected!")
+	return db, err
 }
 
-// Health returns the health status and statistics of the Redis server.
-func (s *service) Health() map[string]string {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second) // Default is now 5s
-	defer cancel()
-
-	stats := make(map[string]string)
-
-	// Check Redis health and populate the stats map
-	stats = s.checkRedisHealth(ctx, stats)
-
-	return stats
-}
-
-// checkRedisHealth checks the health of the Redis server and adds the relevant statistics to the stats map.
-func (s *service) checkRedisHealth(ctx context.Context, stats map[string]string) map[string]string {
-	// Ping the Redis server to check its availability.
-	pong, err := s.db.Ping(ctx).Result()
-	// Note: By extracting and simplifying like this, `log.Fatalf(fmt.Sprintf("db down: %v", err))`
-	// can be changed into a standard error instead of a fatal error.
+func InsertInto(tableName string, columns []string, values []string) error {
+	db, err := ConnectToDB()
 	if err != nil {
-		log.Fatalf(fmt.Sprintf("db down: %v", err))
+		panic(err)
 	}
-
-	// Redis is up
-	stats["redis_status"] = "up"
-	stats["redis_message"] = "It's healthy"
-	stats["redis_ping_response"] = pong
-
-	// Retrieve Redis server information.
-	info, err := s.db.Info(ctx).Result()
-	if err != nil {
-		stats["redis_message"] = fmt.Sprintf("Failed to retrieve Redis info: %v", err)
-		return stats
+	defer db.Close()
+	queryString := "INSERT INTO " + tableName + " (" + strings.Join(columns, ", ") + ") VALUES (" + strings.Join(values, ", ") + ");"
+	fmt.Println(queryString)
+	rows, queryErr := db.Query(queryString)
+	if queryErr != nil {
+		return queryErr
 	}
-
-	// Parse the Redis info response.
-	redisInfo := parseRedisInfo(info)
-
-	// Get the pool stats of the Redis client.
-	poolStats := s.db.PoolStats()
-
-	// Prepare the stats map with Redis server information and pool statistics.
-	// Note: The "stats" map in the code uses string keys and values,
-	// which is suitable for structuring and serializing the data for the frontend (e.g., JSON, XML, HTMX).
-	// Using string types allows for easy conversion and compatibility with various data formats,
-	// making it convenient to create health stats for monitoring or other purposes.
-	// Also note that any raw "memory" (e.g., used_memory) value here is in bytes and can be converted to megabytes or gigabytes as a float64.
-	stats["redis_version"] = redisInfo["redis_version"]
-	stats["redis_mode"] = redisInfo["redis_mode"]
-	stats["redis_connected_clients"] = redisInfo["connected_clients"]
-	stats["redis_used_memory"] = redisInfo["used_memory"]
-	stats["redis_used_memory_peak"] = redisInfo["used_memory_peak"]
-	stats["redis_uptime_in_seconds"] = redisInfo["uptime_in_seconds"]
-	stats["redis_hits_connections"] = strconv.FormatUint(uint64(poolStats.Hits), 10)
-	stats["redis_misses_connections"] = strconv.FormatUint(uint64(poolStats.Misses), 10)
-	stats["redis_timeouts_connections"] = strconv.FormatUint(uint64(poolStats.Timeouts), 10)
-	stats["redis_total_connections"] = strconv.FormatUint(uint64(poolStats.TotalConns), 10)
-	stats["redis_idle_connections"] = strconv.FormatUint(uint64(poolStats.IdleConns), 10)
-	stats["redis_stale_connections"] = strconv.FormatUint(uint64(poolStats.StaleConns), 10)
-	stats["redis_max_memory"] = redisInfo["maxmemory"]
-
-	// Calculate the number of active connections.
-	// Note: We use math.Max to ensure that activeConns is always non-negative,
-	// avoiding the need for an explicit check for negative values.
-	// This prevents a potential underflow situation.
-	activeConns := uint64(math.Max(float64(poolStats.TotalConns-poolStats.IdleConns), 0))
-	stats["redis_active_connections"] = strconv.FormatUint(activeConns, 10)
-
-	// Calculate the pool size percentage.
-	poolSize := s.db.Options().PoolSize
-	connectedClients, _ := strconv.Atoi(redisInfo["connected_clients"])
-	poolSizePercentage := float64(connectedClients) / float64(poolSize) * 100
-	stats["redis_pool_size_percentage"] = fmt.Sprintf("%.2f%%", poolSizePercentage)
-
-	// Evaluate Redis stats and update the stats map with relevant messages.
-	return s.evaluateRedisStats(redisInfo, stats)
-}
-
-// evaluateRedisStats evaluates the Redis server statistics and updates the stats map with relevant messages.
-func (s *service) evaluateRedisStats(redisInfo, stats map[string]string) map[string]string {
-	poolSize := s.db.Options().PoolSize
-	poolStats := s.db.PoolStats()
-	connectedClients, _ := strconv.Atoi(redisInfo["connected_clients"])
-	highConnectionThreshold := int(float64(poolSize) * 0.8)
-
-	// Check if the number of connected clients is high.
-	if connectedClients > highConnectionThreshold {
-		stats["redis_message"] = "Redis has a high number of connected clients"
-	}
-
-	// Check if the number of stale connections exceeds a threshold.
-	minStaleConnectionsThreshold := 500
-	if int(poolStats.StaleConns) > minStaleConnectionsThreshold {
-		stats["redis_message"] = fmt.Sprintf("Redis has %d stale connections.", poolStats.StaleConns)
-	}
-
-	// Check if Redis is using a significant amount of memory.
-	usedMemory, _ := strconv.ParseInt(redisInfo["used_memory"], 10, 64)
-	maxMemory, _ := strconv.ParseInt(redisInfo["maxmemory"], 10, 64)
-	if maxMemory > 0 {
-		usedMemoryPercentage := float64(usedMemory) / float64(maxMemory) * 100
-		if usedMemoryPercentage >= 90 {
-			stats["redis_message"] = "Redis is using a significant amount of memory"
+	defer rows.Close()
+	result := make([]string, 0)
+	for rows.Next() {
+		var row string
+		if err := rows.Scan(&row); err != nil {
+			return err
 		}
+		result = append(result, row)
 	}
-
-	// Check if Redis has been recently restarted.
-	uptimeInSeconds, _ := strconv.ParseInt(redisInfo["uptime_in_seconds"], 10, 64)
-	if uptimeInSeconds < 3600 {
-		stats["redis_message"] = "Redis has been recently restarted"
+	if len(result) > 1 {
+		panic("too many results: " + strings.Join(result, ", "))
 	}
-
-	// Check if the number of idle connections is high.
-	idleConns := int(poolStats.IdleConns)
-	highIdleConnectionThreshold := int(float64(poolSize) * 0.7)
-	if idleConns > highIdleConnectionThreshold {
-		stats["redis_message"] = "Redis has a high number of idle connections"
-	}
-
-	// Check if the connection pool utilization is high.
-	poolUtilization := float64(poolStats.TotalConns-poolStats.IdleConns) / float64(poolSize) * 100
-	highPoolUtilizationThreshold := 90.0
-	if poolUtilization > highPoolUtilizationThreshold {
-		stats["redis_message"] = "Redis connection pool utilization is high"
-	}
-
-	return stats
+	return nil
 }
 
-// parseRedisInfo parses the Redis info response and returns a map of key-value pairs.
-func parseRedisInfo(info string) map[string]string {
-	result := make(map[string]string)
-	lines := strings.Split(info, "\r\n")
-	for _, line := range lines {
-		if strings.Contains(line, ":") {
-			parts := strings.Split(line, ":")
-			key := strings.TrimSpace(parts[0])
-			value := strings.TrimSpace(parts[1])
-			result[key] = value
-		}
+func GetAllFromTable(tableName string) ([]map[string]interface{}, error) {
+	db, err := ConnectToDB()
+	if err != nil {
+		return nil, err
 	}
-	return result
+	defer db.Close()
+
+	// Query all rows from the table
+	rows, queryErr := db.Query("SELECT * FROM " + tableName)
+	if queryErr != nil {
+		return nil, queryErr
+	}
+	defer rows.Close()
+
+	// Get column names
+	columns, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
+
+	// Prepare a slice to hold results
+	var result []map[string]interface{}
+
+	for rows.Next() {
+		// Create a slice to hold values for each column
+		columnValues := make([]interface{}, len(columns))
+		// Create a slice of pointers to populate with row values
+		columnPointers := make([]interface{}, len(columns))
+
+		for i := range columnValues {
+			columnPointers[i] = &columnValues[i]
+		}
+
+		// Scan the current row into the pointers
+		if err := rows.Scan(columnPointers...); err != nil {
+			return nil, err
+		}
+
+		// Create a map for the current row
+		rowMap := make(map[string]interface{})
+		for i, colName := range columns {
+			rowMap[colName] = columnValues[i]
+		}
+
+		// Append the map to the result
+		result = append(result, rowMap)
+	}
+
+	return result, nil
 }

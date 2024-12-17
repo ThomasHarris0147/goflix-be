@@ -38,10 +38,12 @@ services:
     image: 'postgres:latest'
     ports:
       - 15432:5432
-    env_file:
-      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     networks:
       - postgres-network
+      - project_network
     volumes:
       - ${PWD}/db-data/:/var/lib/postgresql/data/
   
@@ -55,6 +57,7 @@ services:
       - database
     networks:
       - postgres-network
+      - project_network
     volumes:
       - ${PWD}/pgadmin-data/:/var/lib/pgadmin/
 
@@ -68,3 +71,5 @@ networks:
   goflix:
   postgres-network:
     driver: bridge
+  project_network:
+    external: true

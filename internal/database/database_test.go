@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"testing"
 
@@ -67,5 +68,49 @@ func TestHealth(t *testing.T) {
 
 	if _, ok := stats["redis_version"]; !ok {
 		t.Fatalf("expected redis_version to be present, got %v", stats["redis_version"])
+	}
+}
+
+func TestConnectToDB(t *testing.T) {
+	res, err := ConnectToDB()
+
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if res == nil {
+		t.Fatalf("expected true, got %v", res)
+	}
+	res.Close()
+}
+
+func TestInsertInto(t *testing.T) {
+	contents := []string{"'test'", "'this is a test'", "'fake path'"}
+	columns := []string{"name", "description", "path"}
+	err := InsertInto("videos", columns, contents)
+
+	if err != nil {
+		t.Fatalf("insert into expected no error, got %v", err)
+	}
+	res, geterr := GetAllFromTable("videos")
+
+	fmt.Println(res, geterr)
+
+	if geterr != nil {
+		t.Fatalf("get all from table expected no error, got %v", err)
+	}
+	if len(res) <= 0 {
+		t.Fatalf("expected more than 1, got %v", len(res))
+	}
+	if res[0]["name"] != "test" {
+		t.Fatalf("expected test, got %v", res[0])
+	}
+}
+
+func TestGetAllFromTable(t *testing.T) {
+	_, err := GetAllFromTable("videos")
+
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
 	}
 }

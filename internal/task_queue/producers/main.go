@@ -18,19 +18,15 @@ func debugNumOfPartitions() {
 	}
 	defer conn.Close()
 
-	// Replace "my-topic" with your topic name
 	topic := "my-topic"
 
-	// Fetch metadata for the topic
 	partitions, err := conn.ReadPartitions(topic)
 	if err != nil {
 		log.Fatalf("failed to fetch partitions: %v", err)
 	}
 
-	// Print the number of partitions
 	log.Printf("Topic %q has %d partitions", topic, len(partitions))
 
-	// Optionally, print partition details
 	for _, p := range partitions {
 		log.Printf("Partition: %d, Leader: %d, Replicas: %v, ISR: %v",
 			p.ID, p.Leader, p.Replicas, p.Isr)
@@ -58,7 +54,7 @@ func send_message(writer *kafka.Writer, ctx context.Context, message []byte) {
 }
 
 func main() {
-	debugNumOfPartitions()
+	// debugNumOfPartitions()
 	ctx := context.Background()
 	writer := launchNewWriter()
 	defer writer.Close()
