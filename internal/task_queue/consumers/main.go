@@ -10,6 +10,7 @@ import (
 	"strings"
 	"syscall"
 
+	"goflix-be/internal/database"
 	video_processing "goflix-be/internal/video_processing"
 
 	"github.com/segmentio/kafka-go"
@@ -65,7 +66,7 @@ func main() {
 		fmt.Println("video has been processed, quality:", videoSpecs.CompressionQuality)
 		videoName := strings.Split(videoSpecs.VideoPath, "/")[len(strings.Split(videoSpecs.VideoPath, "/"))-1]
 		videoNameWoExt := strings.Split(videoName, ".")[0]
-		videoPath := "../../../test/data/" + videoNameWoExt
+		videoPath := "/Users/thomasharris/side-projects/goflix/backend/goflix-be/test/data/" + videoNameWoExt
 		if _, err := os.Stat(videoPath); os.IsNotExist(err) {
 			err := os.Mkdir(videoPath, 0755)
 			if err != nil {
@@ -77,5 +78,8 @@ func main() {
 		fmt.Println("now chunking video")
 		inputVideo := []string{videoPath + "/output_" + videoSpecs.CompressionQuality + ".mp4"}
 		video_processing.ChunkVideo(inputVideo, videoSpecs.ChunkSegments)
+		database.InsertInto("videos",
+			[]string{"name", "description", "path", "quality"},
+			[]string{videoSpecs.Name, videoSpecs.Description, inputVideo[0], videoSpecs.CompressionQuality})
 	}
 }

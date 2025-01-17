@@ -37,6 +37,26 @@ func mustStartRedisContainer() (func(context.Context) error, error) {
 	return dbContainer.Terminate, err
 }
 
+func TestGetSetValueRedis(t *testing.T) {
+	srv := New()
+	srv.SetValueRedis(context.Background(), "test", 0)
+	str, err := srv.GetValueRedis(context.Background(), "test")
+	if err != nil {
+		log.Fatalf("failed to get test: %v", err)
+	}
+	log.Printf("answer: %v", str)
+	intTest, popErr := srv.PopValueRedis(context.Background(), "test")
+	if popErr != nil {
+		log.Fatalf("failed to get test: %v", err)
+	}
+	log.Printf("answer: %v", intTest)
+	str, err = srv.GetValueRedis(context.Background(), "test")
+	if err == nil {
+		log.Fatalf("failed to get test: %v", err)
+	}
+	log.Printf("successfully failed to find deleted item %v", str)
+}
+
 func TestMain(m *testing.M) {
 	teardown, err := mustStartRedisContainer()
 	if err != nil {
@@ -85,8 +105,8 @@ func TestConnectToDB(t *testing.T) {
 }
 
 func TestInsertInto(t *testing.T) {
-	contents := []string{"'test'", "'this is a test'", "'fake path'"}
-	columns := []string{"name", "description", "path"}
+	contents := []string{"test", "this is a test", "fake path", "test"}
+	columns := []string{"name", "description", "path", "quality"}
 	err := InsertInto("videos", columns, contents)
 
 	if err != nil {

@@ -10,6 +10,8 @@ type VideoCompressionSpec struct {
 	VideoPath          string
 	CompressionQuality string
 	ChunkSegments      int
+	Description        string
+	Name               string
 }
 
 func ChangeCodec(inputVideo, outputVideo, compressionQuality string) {

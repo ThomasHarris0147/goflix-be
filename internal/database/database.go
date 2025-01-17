@@ -33,13 +33,31 @@ func ConnectToDB() (*sql.DB, error) {
 	return db, err
 }
 
+func InitVideosDB() error {
+	db, err := ConnectToDB()
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+	queryString := ""
+	_, queryErr := db.Query(queryString)
+	if queryErr != nil {
+		return queryErr
+	}
+	return nil
+}
+
 func InsertInto(tableName string, columns []string, values []string) error {
 	db, err := ConnectToDB()
 	if err != nil {
 		panic(err)
 	}
 	defer db.Close()
-	queryString := "INSERT INTO " + tableName + " (" + strings.Join(columns, ", ") + ") VALUES (" + strings.Join(values, ", ") + ");"
+	var withSingleQuotes []string
+	for _, value := range values {
+		withSingleQuotes = append(withSingleQuotes, "'"+value+"'")
+	}
+	queryString := "INSERT INTO " + tableName + " (" + strings.Join(columns, ", ") + ") VALUES (" + strings.Join(withSingleQuotes, ", ") + ");"
 	fmt.Println(queryString)
 	rows, queryErr := db.Query(queryString)
 	if queryErr != nil {
@@ -57,23 +75,11 @@ func InsertInto(tableName string, columns []string, values []string) error {
 	if len(result) > 1 {
 		panic("too many results: " + strings.Join(result, ", "))
 	}
+	fmt.Println("Inserted Successfully")
 	return nil
 }
 
-func GetAllFromTable(tableName string) ([]map[string]interface{}, error) {
-	db, err := ConnectToDB()
-	if err != nil {
-		return nil, err
-	}
-	defer db.Close()
-
-	// Query all rows from the table
-	rows, queryErr := db.Query("SELECT * FROM " + tableName)
-	if queryErr != nil {
-		return nil, queryErr
-	}
-	defer rows.Close()
-
+func getResultsFromQuery(rows *sql.Rows) ([]map[string]interface{}, error) {
 	// Get column names
 	columns, err := rows.Columns()
 	if err != nil {
@@ -106,6 +112,50 @@ func GetAllFromTable(tableName string) ([]map[string]interface{}, error) {
 
 		// Append the map to the result
 		result = append(result, rowMap)
+	}
+	return result, nil
+}
+
+type VideoResponse struct {
+	Name        string
+	Description string
+	Path        string
+}
+
+func GetVideoBasedOnNameAndQuality(name string, quality string) ([]map[string]interface{}, error) {
+	db, dbErr := ConnectToDB()
+	if dbErr != nil {
+		return nil, dbErr
+	}
+	rows, queryErr := db.Query("SELECT * FROM videos WHERE name = '" + name + "' AND quality = '" + quality + "';")
+	if queryErr != nil {
+		return nil, queryErr
+	}
+	result, err := getResultsFromQuery(rows)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func GetAllFromTable(tableName string) ([]map[string]interface{}, error) {
+	db, connectToDBErr := ConnectToDB()
+	if connectToDBErr != nil {
+		return nil, connectToDBErr
+	}
+	defer db.Close()
+
+	// Query all rows from the table
+	rows, queryErr := db.Query("SELECT * FROM " + tableName)
+	if queryErr != nil {
+		return nil, queryErr
+	}
+	defer rows.Close()
+
+	result, err := getResultsFromQuery(rows)
+
+	if err != nil {
+		return nil, err
 	}
 
 	return result, nil

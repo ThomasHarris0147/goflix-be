@@ -33,7 +33,7 @@ func debugNumOfPartitions() {
 	}
 }
 
-func launchNewWriter() *kafka.Writer {
+func LaunchNewWriter() *kafka.Writer {
 	writer := kafka.NewWriter(kafka.WriterConfig{
 		Brokers:  []string{"localhost:9092"},
 		Topic:    "my-topic",
@@ -56,7 +56,7 @@ func send_message(writer *kafka.Writer, ctx context.Context, message []byte) {
 func main() {
 	// debugNumOfPartitions()
 	ctx := context.Background()
-	writer := launchNewWriter()
+	writer := LaunchNewWriter()
 	defer writer.Close()
 	exampleVideoPath := "/Users/thomasharris/side-projects/goflix/backend/goflix-be/test/data/Skepta, Flo Milli - Why Lie.mp4"
 	w, h := video_processing.GetVideoSize(exampleVideoPath)

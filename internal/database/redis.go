@@ -16,6 +16,9 @@ import (
 
 type Service interface {
 	Health() map[string]string
+	GetValueRedis(ctx context.Context, key string) (string, error)
+	SetValueRedis(ctx context.Context, key string, value interface{})
+	PopValueRedis(ctx context.Context, key string) (int64, error)
 }
 
 type service struct {
@@ -195,4 +198,21 @@ func parseRedisInfo(info string) map[string]string {
 		}
 	}
 	return result
+}
+
+func (s *service) GetValueRedis(ctx context.Context, key string) (string, error) {
+	answer := s.db.Get(ctx, key)
+	return answer.Result()
+}
+
+func (s *service) PopValueRedis(ctx context.Context, key string) (int64, error) {
+	answer := s.db.Del(ctx, key)
+	return answer.Result()
+}
+
+func (s *service) SetValueRedis(ctx context.Context, key string, value interface{}) {
+	err := s.db.Set(ctx, key, value, time.Hour*24).Err()
+	if err != nil {
+		panic(err)
+	}
 }
