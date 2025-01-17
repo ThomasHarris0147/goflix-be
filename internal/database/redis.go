@@ -19,6 +19,7 @@ type Service interface {
 	GetValueRedis(ctx context.Context, key string) (string, error)
 	SetValueRedis(ctx context.Context, key string, value interface{})
 	PopValueRedis(ctx context.Context, key string) (int64, error)
+	ClearAllValuesRedis(ctx context.Context) (string, error)
 }
 
 type service struct {
@@ -207,6 +208,11 @@ func (s *service) GetValueRedis(ctx context.Context, key string) (string, error)
 
 func (s *service) PopValueRedis(ctx context.Context, key string) (int64, error) {
 	answer := s.db.Del(ctx, key)
+	return answer.Result()
+}
+
+func (s *service) ClearAllValuesRedis(ctx context.Context) (string, error) {
+	answer := s.db.FlushDB(ctx)
 	return answer.Result()
 }
 

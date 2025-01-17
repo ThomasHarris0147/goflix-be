@@ -25,6 +25,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	r.POST("/video", s.VideoUploadHandler)
 
+	r.GET("/clear_redis", s.ClearRedis)
+
 	return r
 }
 
@@ -95,6 +97,13 @@ func SendMessage(writer *kafka.Writer, ctx context.Context, message []byte) {
 	if err != nil {
 		log.Fatalf("failed to write message: %v", err)
 	}
+}
+
+func (s *Server) ClearRedis(c *gin.Context) {
+	// ONLY HERE FOR TESTING REASONS
+	srv := database.New()
+	srv.ClearAllValuesRedis(c)
+	c.JSON(http.StatusOK, "Redis Cleared!")
 }
 
 func (s *Server) VideoUploadHandler(c *gin.Context) {
