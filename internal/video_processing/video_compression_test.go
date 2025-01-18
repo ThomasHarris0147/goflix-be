@@ -35,8 +35,8 @@ func TestReturnValidCompressionRates(t *testing.T) {
 }
 
 func TestChangeCodec(t *testing.T) {
-	inFileName := "test/data/Horses.mp4"
-	outFileName := "test/data/Horses_240p.mp4"
+	inFileName := "Horses.mp4"
+	outFileName := "Horses_240p.mp4"
 
 	ChangeCodec(inFileName, outFileName, "426x240")
 	w, h := GetVideoSize(outFileName)
@@ -50,17 +50,15 @@ func TestChangeCodec(t *testing.T) {
 
 func TestChunkVideo(t *testing.T) {
 	videoSpecs := &VideoCompressionSpec{
-		VideoPath:          "../../test/data/horses_compressed/Horses_240p.mp4",
+		VideoPath:          "Horses.mp4",
 		CompressionQuality: "240",
 		ChunkSegments:      8,
 		Description:        "Horses",
 		Name:               "Horses",
 	}
 	inFileName := []string{
-		"../../test/data/horses_compressed/Horses_240p.mp4",
-		"../../test/data/horses_compressed/Horses_360p.mp4",
-		"../../test/data/horses_compressed/Horses_480p.mp4",
-		"../../test/data/horses_compressed/Horses_720p.mp4"}
+		"Horses.mp4",
+	}
 
 	ChunkVideo(inFileName, videoSpecs)
 }
