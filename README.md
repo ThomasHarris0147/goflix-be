@@ -1,6 +1,12 @@
 # Project goflix-be
 
-One Paragraph of project description goes here
+Hello, this is a simple test project where I wanted to see if I could serve videos using kafka task queues and redis as a local cache. I left some empty files to indicate where cloud services could be integrated but I was not interested in paying a few dollars for a test cloud server yet.
+
+
+![goflix-be drawio (2)](https://github.com/user-attachments/assets/9af94e4a-e7c8-4712-a752-cbc94c992603)
+
+
+Side note: the GET /videos with Optional Name and Quality is still WIP but right now you can retrieve videos Name and Quality (although currently required).
 
 ## Getting Started
 
