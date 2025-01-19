@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"strings"
 
 	_ "github.com/lib/pq"
@@ -127,7 +128,9 @@ func GetVideoBasedOnNameAndQuality(name string, quality string) ([]map[string]in
 	if dbErr != nil {
 		return nil, dbErr
 	}
-	rows, queryErr := db.Query("SELECT * FROM videos WHERE name = '" + name + "' AND quality = '" + quality + "';")
+	queryString := "SELECT * FROM videos WHERE name = '" + name + "' AND quality = '" + quality + "';"
+	log.Println("Query: " + queryString)
+	rows, queryErr := db.Query(queryString)
 	if queryErr != nil {
 		return nil, queryErr
 	}

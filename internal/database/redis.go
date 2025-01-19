@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"math"
@@ -217,6 +218,14 @@ func (s *service) ClearAllValuesRedis(ctx context.Context) (string, error) {
 }
 
 func (s *service) SetValueRedis(ctx context.Context, key string, value interface{}) {
+	switch v := value.(type) {
+	case map[string]interface{}:
+		var err error
+		value, err = json.Marshal(v)
+		if err != nil {
+			return
+		}
+	}
 	err := s.db.Set(ctx, key, value, time.Hour*24).Err()
 	if err != nil {
 		panic(err)

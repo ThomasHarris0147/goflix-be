@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 
@@ -65,7 +66,12 @@ func main() {
 		fmt.Println("video has been processed, quality:", videoSpecs.CompressionQuality)
 		videoName := strings.Split(videoSpecs.VideoPath, "/")[len(strings.Split(videoSpecs.VideoPath, "/"))-1]
 		videoNameWoExt := strings.Split(videoName, ".")[0]
-		videoPath := "/Users/thomasharris/side-projects/goflix/backend/goflix-be/test/data/" + videoNameWoExt
+		relativePathToDataFolder := "../../../data"
+		abs, err := filepath.Abs(relativePathToDataFolder)
+		if err != nil {
+			panic(err)
+		}
+		videoPath := abs + "/" + videoNameWoExt
 		if _, err := os.Stat(videoPath); os.IsNotExist(err) {
 			err := os.Mkdir(videoPath, 0755)
 			if err != nil {
