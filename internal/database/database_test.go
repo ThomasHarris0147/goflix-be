@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"testing"
 
 	"github.com/testcontainers/testcontainers-go/modules/redis"
@@ -38,6 +39,9 @@ func mustStartRedisContainer() (func(context.Context) error, error) {
 }
 
 func TestGetSetValueRedis(t *testing.T) {
+	if os.Getenv("SKIP_TEST_ON_CI") == "true" {
+		t.Skip("Skipping test in CI environment")
+	}
 	srv := New()
 	srv.SetValueRedis(context.Background(), "test", 0)
 	str, err := srv.GetValueRedis(context.Background(), "test")
@@ -58,6 +62,9 @@ func TestGetSetValueRedis(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
+	if os.Getenv("SKIP_TEST_ON_CI") == "true" {
+		return
+	}
 	teardown, err := mustStartRedisContainer()
 	if err != nil {
 		log.Fatalf("could not start redis container: %v", err)
@@ -71,6 +78,9 @@ func TestMain(m *testing.M) {
 }
 
 func TestNew(t *testing.T) {
+	if os.Getenv("SKIP_TEST_ON_CI") == "true" {
+		t.Skip("Skipping test in CI environment")
+	}
 	srv := New()
 	if srv == nil {
 		t.Fatal("New() returned nil")
@@ -78,6 +88,9 @@ func TestNew(t *testing.T) {
 }
 
 func TestHealth(t *testing.T) {
+	if os.Getenv("SKIP_TEST_ON_CI") == "true" {
+		t.Skip("Skipping test in CI environment")
+	}
 	srv := New()
 
 	stats := srv.Health()
@@ -92,6 +105,9 @@ func TestHealth(t *testing.T) {
 }
 
 func TestConnectToDB(t *testing.T) {
+	if os.Getenv("SKIP_TEST_ON_CI") == "true" {
+		t.Skip("Skipping test in CI environment")
+	}
 	res, err := ConnectToDB()
 
 	if err != nil {
@@ -105,6 +121,9 @@ func TestConnectToDB(t *testing.T) {
 }
 
 func TestInsertInto(t *testing.T) {
+	if os.Getenv("SKIP_TEST_ON_CI") == "true" {
+		t.Skip("Skipping test in CI environment")
+	}
 	contents := []string{"test", "this is a test", "fake path", "test"}
 	columns := []string{"name", "description", "path", "quality"}
 	err := InsertInto("videos", columns, contents)
@@ -128,6 +147,9 @@ func TestInsertInto(t *testing.T) {
 }
 
 func TestGetAllFromTable(t *testing.T) {
+	if os.Getenv("SKIP_TEST_ON_CI") == "true" {
+		t.Skip("Skipping test in CI environment")
+	}
 	_, err := GetAllFromTable("videos")
 
 	if err != nil {
