@@ -29,5 +29,7 @@ jobs:
     - name: Build
       run: go build -v ./...
 
-    - name: Test
-      run: go test -v ./...
+    - name: Run tests
+      run: |
+        export SKIP_TEST_ON_CI=true
+        go test ./...

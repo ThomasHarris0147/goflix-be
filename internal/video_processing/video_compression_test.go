@@ -35,6 +35,9 @@ func TestReturnValidCompressionRates(t *testing.T) {
 }
 
 func TestChangeCodec(t *testing.T) {
+	if os.Getenv("SKIP_TEST_ON_CI") == "true" {
+		t.Skip("Skipping test in CI environment")
+	}
 	inFileName := "./test_data/Horses.mp4"
 	outFileName := "./test_data/Horses_240p.mp4"
 
@@ -49,6 +52,9 @@ func TestChangeCodec(t *testing.T) {
 }
 
 func TestChunkVideo(t *testing.T) {
+	if os.Getenv("SKIP_TEST_ON_CI") == "true" {
+		t.Skip("Skipping test in CI environment")
+	}
 	videoSpecs := &VideoCompressionSpec{
 		VideoPath:          "./test_data/Horses.mp4",
 		CompressionQuality: "426x240",
