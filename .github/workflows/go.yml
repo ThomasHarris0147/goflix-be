@@ -16,6 +16,11 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - uses: FedericoCarboni/setup-ffmpeg@v3
+      id: setup-ffmpeg
+      with:
+        ffmpeg-version: release
+  
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
